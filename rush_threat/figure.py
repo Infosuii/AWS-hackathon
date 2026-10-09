@@ -94,8 +94,9 @@ def build_figure(bundle: dict) -> go.Figure:
     fig = make_subplots(rows=2, cols=2, specs=[[{"rowspan": 2}, {}], [None, {}]],
                         column_widths=[0.62, 0.38], horizontal_spacing=0.09,
                         vertical_spacing=0.17,
-                        subplot_titles=("Tracking · native field coordinates",
-                                        "Distance to QB", "Closing speed · smoothed"))
+                        subplot_titles=("Field · all tracked players (native yards)",
+                                        "Rusher distance to QB (yd)",
+                                        "Rusher closing speed toward QB (yd/s, smoothed)"))
     dynamic = {}
 
     def add_dynamic(key, trace, row=1, col=1):
@@ -180,9 +181,11 @@ def build_figure(bundle: dict) -> go.Figure:
         for row in (1, 2):
             fig.add_vline(x=terminal_time, row=row, col=2,
                           line=dict(color="#bbc5d6", width=1, dash="dash"))
-        fig.add_annotation(x=terminal_time, y=1.03, xref="x2", yref="y2 domain",
-                           text=f"Terminal · {escape(str(metadata.get('terminal_event') or 'event'))}",
-                           showarrow=False, xanchor="right", font=dict(size=10))
+        event = str(metadata.get('terminal_event') or 'event').replace("_", " ")
+        fig.add_annotation(x=terminal_time, y=0.98, xref="x2", yref="y2 domain",
+                           text=f"Terminal: {escape(event)}", showarrow=False,
+                           xanchor="right", yanchor="top", font=dict(size=11, color="#d5dde8"),
+                           bgcolor="rgba(14,17,23,0.75)", borderpad=3)
 
     alerts = [select_alert(group) for _, group in threats.groupby("frameId", sort=True)]
     alerts = [alert for alert in alerts if alert is not None]
@@ -254,7 +257,8 @@ def build_figure(bundle: dict) -> go.Figure:
         alert = select_alert(current_threats)
         if alert is None:
             updates["alert"] = go.Scatter(x=[], y=[])
-            alert_text = "No qualifying alert · positive closing speed within 5 yards required"
+            alert_text = ("<span style='color:#9aa6b8'>Current-frame alert: No qualifying alert"
+                          " (no rusher within 5 yd who is closing on the QB)</span>")
         else:
             coordinates = [alert[k] for k in ("qb_x", "qb_y", "x", "y")]
             line_x, line_y = ([alert.qb_x, alert.x], [alert.qb_y, alert.y]) \
@@ -265,19 +269,25 @@ def build_figure(bundle: dict) -> go.Figure:
             if (wedge_x and _finite(alert.qb_o) and _finite(alert.bearing_deg)
                     and not pd.isna(alert.outside_sector)):
                 status = "outside" if bool(alert.outside_sector) else "inside"
-            alert_text = (f"Alert · #{_label(alert.jerseyNumber)} {escape(str(alert.displayName))}"
-                          f" · {alert.distance:.2f} yd · +{alert.closing_speed:.2f} yd/s"
-                          f"<br>{status.capitalize()} assumed forward sector")
-        orientation_text = (f"Assumed forward sector {sector_deg:g}° · orientation, not gaze"
-                            if wedge_x else "Assumed forward sector unknown · missing QB orientation/position")
+            alert_text = (f"Current-frame alert: <span style='color:{colors[alert.nflId]}'><b>"
+                          f"#{_label(alert.jerseyNumber)} {escape(str(alert.displayName))}</b></span>"
+                          f" · {alert.distance:.1f} yd from QB · closing at {alert.closing_speed:.1f} yd/s"
+                          f" · {status.capitalize()} assumed forward sector")
+        orientation_text = ("<span style='color:#9aa6b8'>"
+                            + (f"Wedge: assumed forward sector ({sector_deg:g}°) from QB orientation"
+                               " · orientation is not gaze" if wedge_x else
+                               "Assumed forward sector unknown · missing QB orientation/position")
+                            + "</span>")
         now = frame_times[frame_id]
         for key in ("distance_cursor", "speed_cursor"):
             updates[key] = go.Scatter(x=[now, now],
                                       y=distance_range if key == "distance_cursor" else speed_range)
         annotations = base_annotations + [go.layout.Annotation(
-            x=0, y=-0.1, xref="paper", yref="paper", xanchor="left", yanchor="top",
-            showarrow=False, align="left", font=dict(size=12),
-            text=f"Frame {int(frame_id)} · t {now:.2f} s<br>{orientation_text}<br>{alert_text}")]
+            x=0, y=-0.12, xref="paper", yref="paper", xanchor="left", yanchor="top",
+            showarrow=False, align="left", font=dict(size=13, color="#e8edf5"),
+            bgcolor="rgba(22,29,41,0.92)", bordercolor="#3a4a60", borderwidth=1, borderpad=8,
+            text=(f"<b>{now:.1f} s after snap</b>  <span style='color:#9aa6b8'>· frame "
+                  f"{int(frame_id)}</span><br>{alert_text}<br>{orientation_text}"))]
         frames.append(go.Frame(name=str(int(frame_id)),
                       data=[updates[key] for key in dynamic], traces=list(dynamic.values()),
                       layout=go.Layout(annotations=annotations)))
@@ -293,24 +303,30 @@ def build_figure(bundle: dict) -> go.Figure:
                      transition=dict(duration=0))
     fig.update_layout(
         template="plotly_dark", height=830, autosize=True,
-        title=dict(text=f"Rush Threat Explorer · Play {_label(metadata.get('playId'))}"
-                        f"<br><sup>{escape(str(metadata.get('playDescription') or ''))}</sup>",
-                   font=dict(size=19), x=0.02),
-        margin=dict(l=60, r=35, t=110, b=280),
-        legend=dict(orientation="h", x=0, y=-0.48, xanchor="left", yanchor="top",
-                    font=dict(size=11)),
+        title=dict(text=escape(str(metadata.get('playDescription') or '')),
+                   font=dict(size=14, color="#c9d3e0"), x=0.01, y=0.985),
+        margin=dict(l=60, r=35, t=70, b=300),
+        legend=dict(orientation="h", x=0, y=-0.52, xanchor="left", yanchor="top",
+                    font=dict(size=12)),
         hovermode="closest", uirevision=f"{metadata.get('gameId')}-{metadata.get('playId')}",
         meta=dict(dynamic_traces=dynamic, sector_display_radius_yd=7,
                   coordinate_convention="native x/y yards; angle (sin, cos)"),
-        sliders=[dict(active=0, x=0.14, len=0.86, y=-0.29,
-                      currentvalue=dict(prefix="Frame "), pad=dict(t=8),
-                      steps=[dict(label=str(int(fid)), method="animate",
-                                  args=[[str(int(fid))], immediate]) for fid in frame_ids])],
-        updatemenus=[dict(type="buttons", direction="left", x=0, y=-0.29,
-                         showactive=False, buttons=[
-            dict(label="▶", method="animate", args=[None, dict(
+        # Step labels carry time from snap (frame secondary); tick labels are hidden to avoid
+        # crowding, and the current value shows the selected step label prominently.
+        sliders=[dict(active=0, x=0.17, len=0.83, y=-0.35, pad=dict(t=8),
+                      font=dict(size=10, color="rgba(0,0,0,0)"), ticklen=4,
+                      tickcolor="#5c6b80", bgcolor="#3a4a60", activebgcolor="#ffd76a",
+                      currentvalue=dict(prefix="Time from snap: ", xanchor="left",
+                                        font=dict(size=15, color="#e8edf5")),
+                      steps=[dict(label=f"{frame_times[fid]:.1f} s (frame {int(fid)})",
+                                  method="animate", args=[[str(int(fid))], immediate])
+                             for fid in frame_ids])],
+        updatemenus=[dict(type="buttons", direction="left", x=0, y=-0.37, xanchor="left",
+                         showactive=False, pad=dict(r=6, t=4), font=dict(size=13, color="#0e1117"),
+                         bgcolor="#e8edf5", bordercolor="#9aa6b8", buttons=[
+            dict(label="Play", method="animate", args=[None, dict(
                 fromcurrent=True, mode="immediate", frame=dict(duration=100, redraw=True),
                 transition=dict(duration=0))]),
-            dict(label="Ⅱ", method="animate", args=[[None], immediate])])],
+            dict(label="Pause", method="animate", args=[[None], immediate])])],
     )
     return fig
