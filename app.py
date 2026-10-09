@@ -125,7 +125,7 @@ def context_card(m: dict) -> None:
                   help="Play-level label: any defender credited with a hit, hurry or sack. "
                        "It does not say when pressure happened.")
         reasons = ", ".join(m.get("exclusion_reasons") or []) or "none"
-        st.caption(f"{g('offenseFormation')} · {g('dropBackType')} dropback · play action "
+        st.expander("More play details").caption(f"{g('offenseFormation')} · {g('dropBackType')} dropback · play action "
                    f"{'yes' if m.get('pff_playAction') else 'no'} · {g('rushers')} rushers, {g('blockers')} "
                    f"blockers, {g('routes')} routes · snap frame {g('snap_frame')}, terminal frame "
                    f"{g('terminal_frame')} ({g('terminal_event')}) · validation window frames "
@@ -168,8 +168,7 @@ def render_validation(summary: pd.DataFrame, artifact_dir: Path) -> None:
     import plotly.express as px
 
     sc = V.scope(summary)
-    st.divider()
-    st.header("Validation: does rusher proximity line up with recorded pressure?")
+    st.subheader("Validation: does rusher proximity line up with recorded pressure?")
     st.markdown(f"Scope: **entire precomputed dataset** (sidebar filters ignored) · {sc['games']} games, "
                 f"{sc['plays']:,} plays, {sc['eligible']:,} validation-eligible · season "
                 f"{', '.join(map(str, sc['seasons']))} weeks {sc['weeks'][0] if sc['weeks'] else '?'}–"
@@ -211,7 +210,8 @@ def render_validation(summary: pd.DataFrame, artifact_dir: Path) -> None:
 
 
 def methodology() -> None:
-    with st.expander("Methodology and caveats"):
+    with st.container():
+        st.subheader("Methodology and caveats")
         st.markdown(f"""
 - **Data**: NFL Big Data Bowl tracking, 2021 regular season Weeks 1–8 (122 games in the full dataset; not the
   2023 split described in the event brief). Roles are initial PFF scouting roles: rushers = Pass Rush, QB = Pass.
@@ -283,14 +283,19 @@ def main() -> None:
                                 "inside/outside status in the replay. Validation always uses 120°.")
         st.caption("Changes the replay only; validation stays fixed at 120°.")
 
-    if selected is not None:
-        render_replay(data_dir, int(selected["gameId"]), int(selected["playId"]), float(sector))
-    else:
-        with st.container(border=True):
-            st.markdown("**No plays match the sidebar filters.** Try another team or pass result, or reset.")
-            st.button("Reset filters", on_click=reset_filters, key="reset_main")
-    render_validation(summary, artifact_dir)
-    methodology()
+    tab_replay, tab_validation, tab_method = st.tabs(
+        ["▶ Play replay", "Does proximity track pressure?", "How it works"])
+    with tab_replay:
+        if selected is not None:
+            render_replay(data_dir, int(selected["gameId"]), int(selected["playId"]), float(sector))
+        else:
+            with st.container(border=True):
+                st.markdown("**No plays match the sidebar filters.** Try another team or pass result, or reset.")
+                st.button("Reset filters", on_click=reset_filters, key="reset_main")
+    with tab_validation:
+        render_validation(summary, artifact_dir)
+    with tab_method:
+        methodology()
 
 
 if __name__ == "__main__":
