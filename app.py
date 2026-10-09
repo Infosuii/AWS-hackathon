@@ -26,7 +26,7 @@ STYLE = """<style>
 
 # Restrained palettes: slate/navy base with one amber accent (matches the replay alert colour).
 PALETTES = {
-    True: dict(bg="#0f1621", panel="#151f2c", text="#e8edf5", muted="#9aa6b8", border="#2a3748", accent="#f2b84b"),
+    True: dict(bg="#07060b", panel="#110d1a", text="#eeeaf7", muted="#a39bb8", border="#2e2245", accent="#a855f7"),
     False: dict(bg="#f5f7fa", panel="#ffffff", text="#1b2533", muted="#5b6778", border="#d9dee6", accent="#c9861a"),
 }
 
@@ -118,10 +118,11 @@ def pass_result_name(code) -> str:
 
 
 def play_label(row) -> str:
-    desc = str(row.get("playDescription") or "")
-    desc = desc if len(desc) <= 60 else desc[:57] + "..."
-    return (f"{row['possessionTeam']} vs {row['defensiveTeam']} · "
-            f"{down_distance(row.get('down'), row.get('yardsToGo'))} · {desc}  [{row['gameId']}/{row['playId']}]")
+    """Short label: game clock (from the description), down & distance, result."""
+    import re
+    clock = re.match(r"\s*\((\d{1,2}:\d{2})\)", str(row.get("playDescription") or ""))
+    return (f"{clock.group(1) if clock else '--:--'} · "
+            f"{down_distance(row.get('down'), row.get('yardsToGo'))} · {pass_result_name(row.get('passResult'))}")
 
 
 def fmt_auc(x: float) -> str:
@@ -217,7 +218,7 @@ def render_validation(summary: pd.DataFrame, artifact_dir: Path) -> None:
                             var_name="feature", value_name="score")
     long["recorded pressure"] = long["pressure"].map({True: "yes", False: "no"})
     fig = px.box(long, x="feature", y="score", color="recorded pressure", points=False,
-                 color_discrete_map={"yes": "#f2b84b", "no": "#5b8def"},
+                 color_discrete_map={"yes": "#a855f7", "no": "#8d93a8"},
                  title="Score distributions by recorded PFF pressure (all eligible plays)")
     fig.update_layout(height=380, margin=dict(t=50, b=20), colorway=["#f2b84b", "#5b8def"])
     c1, c2 = st.columns([3, 2])
@@ -276,31 +277,43 @@ def main() -> None:
     with st.sidebar:
         dark = st.toggle("Dark mode", value=True, key="dark_mode")
         st.markdown(theme_css(dark), unsafe_allow_html=True)
-        st.subheader("1 · Filter plays")
+        st.subheader("1 · Choose a game")
         teams = sorted(set(summary["possessionTeam"].dropna()) | set(summary["defensiveTeam"].dropna()))
         team = st.selectbox("Team", ["All", *teams], key="f_team", help="Matches the offense or the defense.",
                             format_func=lambda t: "All teams" if t == "All" else t)
-        pressure = st.radio("Recorded PFF pressure", ["All", "Yes", "No"], key="f_pressure", horizontal=True,
-                            format_func=PRESSURE_LABELS.get)
-        results = sorted(summary["passResult"].fillna("(missing)").unique())
-        pass_results = st.multiselect("Pass result", results, key="f_pass", placeholder="All results",
-                                      format_func=pass_result_name)
+        with st.expander("Refine plays"):
+            pressure = st.radio("Recorded PFF pressure", ["All", "Yes", "No"], key="f_pressure",
+                                horizontal=True, format_func=PRESSURE_LABELS.get)
+            results = sorted(summary["passResult"].fillna("(missing)").unique())
+            pass_results = st.multiselect("Pass result", results, key="f_pass", placeholder="All results",
+                                          format_func=pass_result_name)
         plays = filter_plays(summary, team, pressure, pass_results)
 
-        st.subheader("2 · Choose a play")
         selected = None
         if plays.empty:
             st.warning("No plays match these filters.")
             st.button("Reset filters", on_click=reset_filters, key="reset_sidebar", width="stretch")
         else:
+            games = plays.groupby("gameId", sort=True).agg(
+                week=("week", "first"), a=("possessionTeam", lambda s: sorted(set(s.dropna()))),
+                b=("defensiveTeam", lambda s: sorted(set(s.dropna()))))
+            game_ids = list(games.index)
+            game_names = {g: f"Week {int(r.week) if pd.notna(r.week) else '?'} · "
+                             f"{' vs '.join(sorted(set(r.a) | set(r.b)))}" for g, r in games.iterrows()}
+            game_id = st.selectbox(f"Game · {len(game_ids)} available", game_ids,
+                                   index=game_ids.index(DEFAULT_PLAY[0]) if DEFAULT_PLAY[0] in game_ids else 0,
+                                   format_func=game_names.get)
+            plays = plays[plays["gameId"] == game_id].reset_index(drop=True)
+
+            st.subheader("2 · Choose a play")
             idx, found = default_index(plays)
             labels = [play_label(r) for r in plays.to_dict("records")]
-            choice = st.selectbox(f"Play · {len(plays):,} match", range(len(plays)), index=idx,
+            choice = st.selectbox(f"Play · {len(plays)} in this game", range(len(plays)), index=idx,
                                   format_func=lambda i: labels[i])
-            if not found:
-                st.caption(f"Default play {DEFAULT_PLAY[0]}/{DEFAULT_PLAY[1]} is filtered out; "
-                           "showing the first match.")
             selected = plays.iloc[choice]
+            st.caption(str(selected.get("playDescription") or ""))
+            with st.expander("Details"):
+                st.caption(f"Game ID {selected['gameId']} · Play ID {selected['playId']}")
 
         st.subheader("3 · Replay wedge")
         sector = st.slider("Assumed forward sector (degrees)", 60, 180, 120, step=5,
