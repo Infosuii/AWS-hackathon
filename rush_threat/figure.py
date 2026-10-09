@@ -114,7 +114,8 @@ def build_figure(bundle: dict) -> go.Figure:
         add_dynamic(role, go.Scatter(x=[], y=[], mode="markers+text", name=name,
                     marker=dict(color=color, symbol=symbol, size=size,
                                 line=dict(color="#172839", width=1.5)),
-                    textfont=dict(size=11, color="#172839"), textposition="middle center",
+                    textfont=dict(size=11, color="#ffffff" if role == "qb" else "#172839"),
+                    textposition="top center" if role == "qb" else "middle center",
                     hovertemplate="%{customdata[0]}<br>%{customdata[1]} · #%{customdata[2]}"
                                   "<br>x %{x:.2f} yd · y %{y:.2f} yd<extra></extra>"))
     for nfl_id in rusher_ids:
@@ -170,7 +171,7 @@ def build_figure(bundle: dict) -> go.Figure:
                     name="Replay time", hoverinfo="skip",
                     line=dict(color="#f5f8ff", width=2, dash="dot")), row, 2)
     fig.add_hline(y=5, row=1, col=2, line=dict(color="#ffd76a", dash="dash"),
-                  annotation_text="5 yd alert radius", annotation_position="top left")
+                  annotation_text="5 yd alert radius", annotation_position="bottom right")
     fig.add_hline(y=0, row=2, col=2, line=dict(color="#627388", width=1))
 
     terminal = metadata.get("terminal_frame")
@@ -245,7 +246,7 @@ def build_figure(bundle: dict) -> go.Figure:
             rows = rows.loc[rows.x.map(_finite) & rows.y.map(_finite)]
             key = role if nfl_id is None else f"rusher:{nfl_id}"
             text = ([""] * len(rows) if role == "ball" else
-                    ["QB" if role == "qb" else _label(j) for j in rows.jerseyNumber])
+                    [f"QB {_label(j)}" if role == "qb" else _label(j) for j in rows.jerseyNumber])
             custom = [[escape(str(r.displayName)), role, _label(r.jerseyNumber)]
                       for _, r in rows.iterrows()]
             updates[key] = go.Scatter(x=rows.x.tolist(), y=rows.y.tolist(),
@@ -291,12 +292,12 @@ def build_figure(bundle: dict) -> go.Figure:
     immediate = dict(mode="immediate", frame=dict(duration=0, redraw=True),
                      transition=dict(duration=0))
     fig.update_layout(
-        template="plotly_dark", height=780, autosize=True,
+        template="plotly_dark", height=830, autosize=True,
         title=dict(text=f"Rush Threat Explorer · Play {_label(metadata.get('playId'))}"
                         f"<br><sup>{escape(str(metadata.get('playDescription') or ''))}</sup>",
                    font=dict(size=19), x=0.02),
-        margin=dict(l=60, r=35, t=110, b=230),
-        legend=dict(orientation="h", x=0, y=-0.39, xanchor="left", yanchor="top",
+        margin=dict(l=60, r=35, t=110, b=280),
+        legend=dict(orientation="h", x=0, y=-0.48, xanchor="left", yanchor="top",
                     font=dict(size=11)),
         hovermode="closest", uirevision=f"{metadata.get('gameId')}-{metadata.get('playId')}",
         meta=dict(dynamic_traces=dynamic, sector_display_radius_yd=7,
