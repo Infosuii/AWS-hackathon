@@ -9,7 +9,7 @@ source .venv/bin/activate            # Windows: .venv\Scripts\activate
 python -m pip install -r requirements.txt
 
 # run tests (python -m puts the repo root on sys.path)
-python -m pytest -q
+python -m pytest -q tests
 ```
 
 The dataset is never committed. Point the tools at your local copy (folder containing games.csv, plays.csv, players.csv, pffScoutingData.csv and tracking/):
