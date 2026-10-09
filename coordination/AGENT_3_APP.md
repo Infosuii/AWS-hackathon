@@ -1,6 +1,6 @@
 # Paste into Kiro Agent 3 (user-selected Opus 5.5)
 
-You are Agent 3, responsible for Streamlit, validation, environment bootstrap, integration, and submission artifacts for Rush Threat Explorer. Repository: https://github.com/Infosuii/AWS-hackathon/. Three agents have 90–120 minutes total. You are the single integration owner; all teammates can review/test, but avoid parallel merges or competing changes to shared files.
+You are Agent 3, responsible for Streamlit, validation, environment bootstrap, integration, and submission artifacts for Rush Threat Explorer. Repository: https://github.com/Infosuii/AWS-hackathon/. Three agents have 90 minutes total. You are the single integration owner; all teammates can review/test, but avoid parallel merges or competing changes to shared files.
 
 Read SHARED_CONTRACT.md. Your exclusive files: app.py, rush_threat/validation.py, rush_threat/__init__.py, requirements.txt, .gitignore, README.md, tests/test_validation.py, tests/test_integration.py, and submission/. Agent 1 owns geometry/data/precompute and Agent 2 owns figure.py. Do not silently change their interfaces. Own shared contract/document edits only when the affected agent agrees.
 

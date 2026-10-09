@@ -22,3 +22,8 @@ Thumbs.db
 
 # Auto-sync log
 .git-autosync.log
+
+# Local agent checkout and verification environment stored in the code folder
+/code/AWS-hackathon-agent1/
+/code/agent1-venv*/
+/code/*-install.log
