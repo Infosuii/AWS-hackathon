@@ -1,0 +1,24 @@
+# Large NFL Big Data Bowl dataset (~825 MB) - download separately, don't commit
+nfl-big-data-bowl-regional-event-data-main/data/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# Node
+node_modules/
+
+# Secrets / env
+.env
+.env.*
+*.pem
+
+# OS / editor
+.DS_Store
+Thumbs.db
+
+# Auto-sync log
+.git-autosync.log

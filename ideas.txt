@@ -1,0 +1,240 @@
+The blocker matchup explorer helps a coach answer: “Who is giving my blocker trouble, and which plays should I review?”
+A blocker protects the quarterback. A pass rusher tries to get past that blocker and reach the quarterback. Your dataset contains labels for blocking assignments and whether a blocker allowed a hurry, hit or sack.
+Imagine this workflow:
+1. Select an offensive lineman. You see their blocking opportunities and the percentage of plays where PFF credited them with allowing a hit, hurry or sack.
+2. See their opponents. A table shows the defenders recorded as their blocking assignments, how often those matchups occurred, and the associated outcomes.
+3. Filter the situations. Compare standard pass protection with play action, or inspect third downs and particular formations.
+4. Click a concerning group of plays. Open the descriptions and a field replay highlighting the blocker, assigned defender and quarterback.
+A hypothetical summary might look like this:
+Recorded opponent	Blocking opportunities	Plays with pressure allowed
+Defender A	30	5 — 16.7%
+Defender B	24	1 — 4.2%
+Defender C	4	2 — 50%
+
+
+The coach would review the five plays associated with Defender A to look for a recurring problem. Defender C’s percentage looks worse, but four opportunities are too few to make a strong judgment.
+Who benefits?
+- Offensive line coach: finds examples to review and plan technique work or protection help.
+- Scout: examines a player’s performance against different opponents and assignments.
+- Broadcaster: finds a matchup worth explaining during a game.
+Why it’s useful: it connects a summary to the actual plays behind it. A coach can move from “this player allowed pressure” to a focused set of examples without searching through every play.
+There are two important details. Count each play once if it contains any allowed hurry, hit or sack; adding the three totals could double-count plays. Also, your assignment field records the first defender blocked. Players can switch assignments, so the tool should describe recorded matchups rather than claim that defender caused every failure.
+For your two-hour build, I’d make one player selector, one opponent table, one play list and one simple replay. That is enough to demonstrate a useful scouting workflow without inventing a score
+
+
+
+
+
+
+second idea I found a useful hook in your data: plays with six blockers had more recorded pressure than plays with five blockers. That’s an unadjusted comparison—harder situations may call for extra protection—but it supports a strong coaching question: what does an offense gain when it sacrifices a receiving option for another blocker?
+
+
+
+
+
+
+
+I’d build “The Price of Protection” — a tool that shows what an offense gets when it keeps an extra player back to protect the quarterback.
+Enter it in the visualization/comparison category.
+The football question is simple: “Is extra protection worth having fewer receivers available?” A running back or tight end who stays in to block usually gives the quarterback one fewer passing option. Finding that balance is a real coaching problem, already discussed in PFF’s analysis of extra blockers.
+Your tool would make that tradeoff visible, searchable and connected to actual plays.
+There’s already an interesting story in your data. I calculated these unadjusted figures using the PFF role and pressure labels:
+Players assigned to block	Players assigned to routes	Plays	Plays with a recorded hurry, hit or sack
+5	5	6,087	36.1%
+6	4	1,742	43.5%
+7	3	657	35.3%
+
+
+Source: C:/projects/AWS Hackathon/nfl-big-data-bowl-regional-event-data-main/data/pffScoutingData.csv
+More blockers didn’t automatically coincide with less pressure. These numbers don’t establish cause: teams may add protection against stronger rushes, for longer-developing plays, or in harder situations. Exploring those differences is the purpose of the tool.
+What someone would actually do with it
+An offensive coordinator selects their team, then filters to a situation—for example, third-and-long against four rushers. The app compares five-, six- and seven-player protection using:
+- Recorded pressure frequency.
+- Passing yards and outcomes.
+- Number of route runners.
+- Sample size and the underlying plays.
+Clicking a result opens a field replay. Blockers, route runners and rushers have different colors, so the viewer can see the protection commitment immediately.
+A particularly useful filter is “extra protection, pressure still occurred.” It produces a focused review list for the coach: plays where the offense committed additional resources but still experienced pressure.
+Why it could score well
+These are potential scores for a well-executed version, not predictions of the judges’ ratings.
+Criterion	Potential	What earns it
+Football Insight	5/5	Addresses a concrete coaching tradeoff. It connects protection to the receiving options sacrificed and exposes situations worth reviewing.
+Technical Execution	4/5	Accurate joins, play-level pressure counting, responsive filters, clear sample sizes and a working replay demonstrate meaningful engineering.
+Communication	5/5	“One more blocker means one fewer route” is easy to explain. The aggregate comparison and replay tell the same story at different scales.
+Originality	3–4/5	The football question has prior work. The distinctive contribution is an interactive tool that connects resource allocation, outcomes and specific examples. Claiming a brand-new statistic would weaken its credibility.
+
+
+Why it fits your two hours
+The core comparison comes from small scouting and play tables. You can calculate it across the whole dataset, then load tracking only when someone selects a replay. In Python, Streamlit, pandas and Plotly are enough.
+Agents can divide the work into data calculations, the comparison interface, and the replay. Prioritize the comparison and play list; the replay provides the visual finish.
+The main analytical requirement is to compare similar situations and keep sample sizes visible. Filters improve comparability, but the app should support investigation rather than claim that adding a blocker would change a particular play’s result.
+
+
+
+
+
+1. Blindside Threat Velocity (BTV)
+The Concept
+An interactive Quarterback vision engine that tracks where the QB is looking in real time and calculates how fast unseen pass rushers are charging at them from outside their field of view.
+How It Works
+Vision Field Modeling: Reads the QB’s live body orientation angle (o) on every frame and projects a 120-degree forward vision wedge representing their active field of view.
+Blindspot Detection: Flags any pass rusher located outside this 120-degree wedge as a "blindside threat."
+Closure Velocity: Measures how fast that blindside defender is closing the distance to the QB (in yards per second) while remaining undetected.
+Threat Alerting: Triggers a high-risk pressure event when a blindside rusher gets within 10 yards of the QB at high speed.
+How Easy It Is to Visualise as a Final Product
+Effort Level: Very Easy
+Plotly Implementation: You render standard 2D scatter dots for players, then add a single filled polar polygon (a semi-transparent triangle wedge) extending forward from the QB's (x,y) coordinates.
+Visual Impact: High-contrast and immediate—when a blindside rusher approaches, you simply draw a bold red line between the rusher dot and QB dot. Judges instantly understand the metric without reading a manual.
+2. Structural Breach Index (SBI)
+The Concept
+An offensive line protection dashboard that builds a geometric perimeter around pass blockers and pinpoints the exact frame, angle, and defender that causes the pocket wall to break.
+How It Works
+Protection Boundary: Connects the positions of all five offensive linemen on every frame using scipy.spatial.ConvexHull to form a dynamic perimeter around the QB.
+Breach Event Detection: Detects the exact frame when a pass rusher breaks inside that boundary polygon.
+Weakest Link Tracking: Identifies which specific offensive lineman allowed the penetration (e.g., Left Tackle vs. Right Guard) and measures defender penetration speed upon crossing the boundary.
+Structural Collapse Rate: Calculates the overall rate at which the protection perimeter shrinks from snap to throw or sack.
+How Easy It Is to Visualise as a Final Product
+Effort Level: Extremely Easy
+Plotly Implementation: Scipy's ConvexHull directly returns the ordered boundary vertices for your 5 linemen. You pass those coordinates straight into a Plotly go.Scatter(fill='toself') trace.
+Visual Impact: Highly intuitive—the pocket polygon displays in Green at snap, turns Yellow as space shrinks, and turns Red with a target marker at the exact frame a rusher steps inside.
+
+
+
+
+
+The Decoy Value Index (DVI)
+
+How valuable is a receiver who never gets the ball?
+
+The big idea
+
+Consider two wide receivers.
+
+Receiver A
+
+* Catches six passes.
+* Gains 80 yards.
+
+Receiver B
+
+* Catches one pass.
+* Gains 12 yards.
+
+Based on conventional receiving statistics, Receiver A appears more productive.
+
+But what if Receiver B repeatedly occupies a defender, opens a passing lane for a teammate and helps create space elsewhere?
+
+Receiver B could be contributing to the offence in ways that receiving statistics don’t capture.
+
+Your proposed metric would investigate the spatial value of a receiver’s movement when they aren’t the intended target.
+
+How would you calculate it?
+
+The tracking data contains player coordinates, while the scouting data identifies players whose role is Pass route and identifies the passer.
+
+That gives you a starting point for identifying offensive routes and their relationship to the rest of the play.  
+
+Step 1: Identify the receiver’s route.
+
+Track the receiver’s position from the snap until pass release.
+
+Step 2: Measure defensive displacement.
+
+Track the nearest defender and measure how their position changes during the route.
+
+For example, calculate how far a defender moves while tracking a particular receiver.
+
+Step 3: Measure space created for teammates.
+
+For another offensive receiver, calculate their separation from the nearest defender over the same period.
+
+If the first receiver’s route coincides with the second receiver gaining space, that is a potentially interesting pattern.
+
+Step 4: Calculate a preliminary score.
+
+One possible definition is:
+
+DVI_i =
+\frac{\text{Teammate Separation Gains During Route }i}
+{\text{Number of Eligible Plays}}
+
+You could improve this by measuring the change in separation relative to the start of the play.
+
+A receiver who repeatedly runs routes during which teammates gain space would receive a higher score.
+
+What makes this different?
+
+Most basic receiving analysis focuses on the receiver who catches the ball.
+
+Your metric investigates the potential contribution of players who don’t receive it.
+
+This is particularly interesting for:
+
+* Receivers who draw coverage away from teammates.
+* Tight ends who run routes that occupy underneath defenders.
+* Players who help open space for another receiver.
+
+The visualisation
+
+Create a route-level comparison.
+
+Show:
+
+1. The decoy receiver’s route.
+2. The defender’s movement.
+3. The teammate’s changing separation.
+4. The play’s final outcome.
+
+Highlight plays where a receiver doesn’t get targeted but a teammate gains separation.
+
+The critical limitation
+
+A receiver’s route and a teammate’s separation gain occurring together doesn’t prove that the route caused the gain.
+
+You would need to account for route combinations, defensive schemes and the intended design of the play to make stronger causal claims.
+
+Difficulty: 4/5
+Originality potential: Very high
+Three-hour feasibility: Moderate
+
+
+—————————————————————————————————————————————
+
+
+ Defensive Domino Effect (DDE)
+
+The question: Which offensive movements trigger a chain reaction across the defence?
+
+Picture this sequence:
+
+1. Receiver A runs across the formation.
+2. Defender A follows.
+3. Defender B shifts to compensate.
+4. A third defender moves to cover the space Defender B vacated.
+5. Another receiver gains an opportunity.
+
+The interesting part isn’t simply how far one defender moves. It’s how much defensive movement one offensive player’s route appears to trigger across the entire unit.
+
+Possible metric
+
+\text{DDE}_i =
+\frac{\text{Total defensive displacement associated with route }i}
+{\text{Route distance}_i}
+
+You could also measure how many defenders change direction or alter their distance from offensive players during the route.
+
+The output: A leaderboard of receivers who generate the largest defensive chain reactions.
+
+The limitation: Tracking data alone cannot prove that one route caused every subsequent movement. The score measures an associated reaction, not confirmed causation.
+
+
+
+
+
+
+
+
+
+
+
+
