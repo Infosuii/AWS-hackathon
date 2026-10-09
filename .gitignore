@@ -1,11 +1,32 @@
-# Large NFL Big Data Bowl dataset (~825 MB) - download separately, don't commit
+# Large NFL Big Data Bowl dataset (~825 MB) - download separately, don't commit.
+# The dataset folder name differs by machine; ignore common locations and raw files.
 nfl-big-data-bowl-regional-event-data-main/data/
+/data/
+tracking/
+tracking_*.csv
+pffScoutingData.csv
+games.csv
+plays.csv
+players.csv
+
+# Generated preprocessing output (keep locally for the demo, never commit)
+artifacts/
+*.parquet
+
+# Worktrees used for parallel agent checkouts
+.worktrees/
 
 # Python
 __pycache__/
-*.pyc
+*.py[cod]
 .venv/
+.venv*/
 venv/
+env/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 .ipynb_checkpoints/
 
 # Node
@@ -15,6 +36,10 @@ node_modules/
 .env
 .env.*
 *.pem
+*.key
+.streamlit/secrets.toml
+.aws/
+credentials*
 
 # OS / editor
 .DS_Store

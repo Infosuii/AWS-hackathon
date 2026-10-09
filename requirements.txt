@@ -1,0 +1,10 @@
+# Rush Threat Explorer - tested with Python 3.13.15 (macOS arm64).
+# Install: python -m pip install -r requirements.txt
+pandas==3.0.6
+numpy==2.5.3
+streamlit==1.65.0
+plotly==7.1.0
+# Optional: Parquet output/input. Preprocessing and the app fall back to CSV without it.
+pyarrow==25.0.1
+# Development only
+pytest==9.1.1
