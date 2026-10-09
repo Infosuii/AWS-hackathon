@@ -99,7 +99,13 @@ def resolve_data_dir(data_dir: str | os.PathLike | None = None) -> Path:
     elif os.environ.get("RUSH_DATA_DIR"):
         candidates.append(Path(os.environ["RUSH_DATA_DIR"]))
     else:
-        bases = [Path.cwd(), Path(__file__).resolve().parent.parent]
+        # cwd and the repository root, plus up to three parent folders of each, so a
+        # checkout nested beside or below the dataset folder still finds it.
+        bases: list[Path] = []
+        for start in (Path.cwd(), Path(__file__).resolve().parent.parent):
+            for base in [start, *list(start.parents)[:3]]:
+                if base not in bases:
+                    bases.append(base)
         for base in bases:
             candidates += [base / "data",
                            base / "nfl-big-data-bowl-regional-event-data-main" / "data"]
@@ -136,6 +142,16 @@ def load_context(data_dir) -> dict[str, pd.DataFrame]:
     return {"games": games, "plays": plays, "players": players, "scouting": scouting}
 
 
+def _scouting(context: dict) -> pd.DataFrame:
+    """Scouting table with normalized roles, also for hand-built (synthetic) contexts."""
+    sc = context["scouting"]
+    if "role" not in sc.columns:
+        sc = sc.copy()
+        sc["pff_role_norm"] = sc["pff_role"].map(normalize_role)
+        sc["role"] = sc["pff_role_norm"].map(ROLE_MAP).fillna("other")
+    return sc
+
+
 def tracking_path(data_dir, game_id: int) -> Path:
     return resolve_data_dir(data_dir) / "tracking" / f"tracking_{int(game_id)}.csv"
 
@@ -168,7 +184,8 @@ def play_boundaries(game_tracking: pd.DataFrame) -> pd.DataFrame:
     out = out.drop(columns=["snap_bs", "snap_auto"])
 
     cand = ev[ev["event"].isin(TERMINAL_PRIORITY)].merge(out[KEYS + ["snap_frame"]], on=KEYS)
-    cand = cand[cand["frameId"] > cand["snap_frame"]].copy()
+    after_snap = (cand["frameId"] > cand["snap_frame"]).fillna(False).astype(bool)
+    cand = cand[after_snap].copy()
     cand["prio"] = cand["event"].map(TERMINAL_PRIORITY)
     cand = cand.sort_values(KEYS + ["frameId", "prio"]).drop_duplicates(KEYS, keep="first")
     cand = cand.rename(columns={"frameId": "terminal_frame", "event": "terminal_event"})
@@ -187,13 +204,13 @@ def _play_info(game_tracking: pd.DataFrame, context: dict, game_ids) -> pd.DataF
     games = context["games"][["gameId", "season", "week"]]
     info = info.merge(games, on="gameId", how="left")
 
-    sc = context["scouting"]
+    sc = _scouting(context)
     sc = sc[sc["gameId"].isin(game_ids)]
-    counts = (sc.assign(_one=1).pivot_table(index=KEYS, columns="role", values="_one",
-                                            aggfunc="sum", fill_value=0))
-    counts = counts.reindex(columns=["blocker", "rusher", "route", "qb"], fill_value=0)
-    counts = counts.rename(columns={"blocker": "blockers", "rusher": "rushers",
-                                    "route": "routes", "qb": "qb_count"}).reset_index()
+    role_cols = {"blocker": "blockers", "rusher": "rushers", "route": "routes",
+                 "qb": "qb_count"}
+    counts = (sc[KEYS].assign(**{v: (sc["role"] == k).astype("int64")
+                                 for k, v in role_cols.items()})
+              .groupby(KEYS, as_index=False).sum())
     info = info.merge(counts, on=KEYS, how="left")
     for c in ["blockers", "rushers", "routes", "qb_count"]:
         info[c] = info[c].fillna(0).astype("int64")
@@ -201,7 +218,7 @@ def _play_info(game_tracking: pd.DataFrame, context: dict, game_ids) -> pd.DataF
     flags = sc[["pff_hit", "pff_hurry", "pff_sack"]].eq(1).any(axis=1)
     pressure = flags.groupby([sc["gameId"], sc["playId"]]).any().rename("pressure").reset_index()
     info = info.merge(pressure, on=KEYS, how="left")
-    info["pressure"] = info["pressure"].fillna(False).astype(bool)
+    info["pressure"] = info["pressure"].eq(True)
 
     qbs = sc[sc["role"] == "qb"].groupby(KEYS)["nflId"].first().rename("qb_nflId").reset_index()
     info = info.merge(qbs, on=KEYS, how="left")
@@ -216,7 +233,7 @@ def _play_info(game_tracking: pd.DataFrame, context: dict, game_ids) -> pd.DataF
                           left_on=TRACK_KEYS, right_on=KEYS + ["qb_nflId"])
     qb_tr = qb_tr[KEYS].drop_duplicates().assign(qb_tracked=True)
     info = info.merge(qb_tr, on=KEYS, how="left")
-    info["qb_tracked"] = info["qb_tracked"].fillna(False).astype(bool)
+    info["qb_tracked"] = info["qb_tracked"].eq(True)
 
     rush = sc.loc[sc["role"] == "rusher", TRACK_KEYS]
     rush_tr = rush.merge(tracked, on=TRACK_KEYS).groupby(KEYS).size().rename("rushers_tracked")
@@ -254,7 +271,7 @@ def _threats(win: pd.DataFrame, info: pd.DataFrame, context: dict,
     qb = qb[KEYS + ["frameId", "x", "y", "o"]].rename(
         columns={"x": "qb_x", "y": "qb_y", "o": "qb_o"})
 
-    sc = context["scouting"]
+    sc = _scouting(context)
     rush_ids = sc.loc[(sc["role"] == "rusher") & sc["gameId"].isin(info["gameId"].unique()),
                       TRACK_KEYS].drop_duplicates()
     r = win.merge(rush_ids, on=TRACK_KEYS)
@@ -315,7 +332,7 @@ def _play_status(row, play_threats: pd.DataFrame) -> tuple[list[str], str]:
             reasons.append("missing_terminal")
     if row["rushers"] == 0:
         reasons.append("missing_rushers")
-    elif row["rushers_tracked"] < row["rushers"]:
+    elif row["has_tracking"] and row["rushers_tracked"] < row["rushers"]:
         reasons.append("rusher_untracked")
 
     if row["replay_available"] and row["boundaries_known"]:
@@ -428,7 +445,9 @@ def build_play_bundle(game_tracking: pd.DataFrame, context: dict, game_id: int, 
 
 
 def _players_table(win: pd.DataFrame, context: dict) -> pd.DataFrame:
-    sc = context["scouting"][TRACK_KEYS + ["role"]].drop_duplicates(TRACK_KEYS)
+    sc = _scouting(context)
+    sc = sc.loc[sc["gameId"].isin(win["gameId"].unique()),
+                TRACK_KEYS + ["role"]].drop_duplicates(TRACK_KEYS)
     p = win.merge(sc, on=TRACK_KEYS, how="left")
     names = context["players"][["nflId", "displayName"]].drop_duplicates("nflId")
     p = p.merge(names, on="nflId", how="left")
@@ -441,13 +460,26 @@ def _players_table(win: pd.DataFrame, context: dict) -> pd.DataFrame:
     return p[PLAYER_COLUMNS].reset_index(drop=True)
 
 
+def build_game_threats(game_tracking: pd.DataFrame, context: dict,
+                       sector_deg: float = SUMMARY_SECTOR_DEG) -> pd.DataFrame:
+    """Threat rows for every replayable play of the games in game_tracking: the contract
+    threat columns plus gameId, playId (helper used by build_game_summaries)."""
+    game_ids = sorted(game_tracking["gameId"].dropna().unique().tolist())
+    info = _play_info(game_tracking, context, game_ids)
+    threats = _threats(_window(game_tracking, info), info, context, sector_deg)
+    return threats[KEYS + THREAT_COLUMNS].reset_index(drop=True)
+
+
 def _summaries_for_games(game_tracking: pd.DataFrame, context: dict, game_ids) -> pd.DataFrame:
     info = _play_info(game_tracking, context, game_ids)
     trk = game_tracking[game_tracking["gameId"].isin([int(g) for g in game_ids])]
     win = _window(trk, info)
     threats = _threats(win, info, context, SUMMARY_SECTOR_DEG)
 
-    alerts = frame_alerts(threats)
+    # Summary peaks only for properly bounded replays (snap..terminal); a flagged
+    # whole-play fallback would mix in post-release motion.
+    bounded = info.loc[info["boundaries_known"], KEYS]
+    alerts = frame_alerts(threats.merge(bounded, on=KEYS))
     peak = (alerts.sort_values(KEYS + ["closing_speed", "frameId", "nflId"],
                                ascending=[True, True, False, True, True])
             .drop_duplicates(KEYS, keep="first")
