@@ -24,6 +24,28 @@ STYLE = """<style>
 [data-testid="stSidebar"] h3 {margin-top: 0.4rem;}
 </style>"""
 
+# Restrained palettes: slate/navy base with one amber accent (matches the replay alert colour).
+PALETTES = {
+    True: dict(bg="#0f1621", panel="#151f2c", text="#e8edf5", muted="#9aa6b8", border="#2a3748", accent="#f2b84b"),
+    False: dict(bg="#f5f7fa", panel="#ffffff", text="#1b2533", muted="#5b6778", border="#d9dee6", accent="#c9861a"),
+}
+
+
+def theme_css(dark: bool) -> str:
+    p = PALETTES[dark]
+    return f"""<style>
+.stApp, [data-testid="stHeader"] {{background: {p['bg']}; color: {p['text']};}}
+[data-testid="stSidebar"] {{background: {p['panel']}; border-right: 1px solid {p['border']};}}
+.stApp h1, .stApp h2, .stApp h3, .stApp p, .stApp label, .stApp li, [data-testid="stMetricValue"],
+[data-testid="stSidebar"] * {{color: {p['text']};}}
+[data-testid="stCaptionContainer"], [data-testid="stCaptionContainer"] p {{color: {p['muted']} !important;}}
+[data-testid="stVerticalBlockBorderWrapper"] {{background: {p['panel']}; border-color: {p['border']} !important;}}
+.stApp h1 {{border-bottom: 3px solid {p['accent']}; display: inline-block; padding-bottom: .15rem;}}
+button[data-baseweb="tab"][aria-selected="true"] p {{color: {p['accent']}; font-weight: 650;}}
+div[data-baseweb="tab-highlight"] {{background-color: {p['accent']};}}
+[data-baseweb="select"] > div, [data-baseweb="input"] > div {{background: {p['bg']}; border-color: {p['border']};}}
+</style>"""
+
 
 def resolve_data_dir() -> Path | None:
     env = os.environ.get("RUSH_DATA_DIR")
@@ -195,8 +217,9 @@ def render_validation(summary: pd.DataFrame, artifact_dir: Path) -> None:
                             var_name="feature", value_name="score")
     long["recorded pressure"] = long["pressure"].map({True: "yes", False: "no"})
     fig = px.box(long, x="feature", y="score", color="recorded pressure", points=False,
+                 color_discrete_map={"yes": "#f2b84b", "no": "#5b8def"},
                  title="Score distributions by recorded PFF pressure (all eligible plays)")
-    fig.update_layout(height=380, margin=dict(t=50, b=20))
+    fig.update_layout(height=380, margin=dict(t=50, b=20), colorway=["#f2b84b", "#5b8def"])
     c1, c2 = st.columns([3, 2])
     c1.plotly_chart(fig, width="stretch")
     with c2:
@@ -251,6 +274,8 @@ def main() -> None:
         st.session_state.setdefault(key, value)
 
     with st.sidebar:
+        dark = st.toggle("Dark mode", value=True, key="dark_mode")
+        st.markdown(theme_css(dark), unsafe_allow_html=True)
         st.subheader("1 · Filter plays")
         teams = sorted(set(summary["possessionTeam"].dropna()) | set(summary["defensiveTeam"].dropna()))
         team = st.selectbox("Team", ["All", *teams], key="f_team", help="Matches the offense or the defense.",
