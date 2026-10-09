@@ -5,7 +5,7 @@ Rush Threat Explorer is a local Streamlit app that replays NFL Big Data Bowl tra
 ```bash
 python -m pip install -r requirements.txt          # Python 3.13; details in submission/SETUP.md
 python precompute.py --games all --data-dir /path/to/data --output-dir artifacts
-RUSH_DATA_DIR=/path/to/data streamlit run app.py   # tests: RUSH_DATA_DIR=/path/to/data python -m pytest -q
+RUSH_DATA_DIR=/path/to/data streamlit run app.py   # tests: RUSH_DATA_DIR=/path/to/data python -m pytest -q tests
 ```
 
 Screenshot: `submission/screenshot.png`
