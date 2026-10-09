@@ -1,6 +1,6 @@
 # Paste into Kiro Agent 1 (user-selected Opus 5.5)
 
-You are Agent 1, responsible for the data engine of Rush Threat Explorer. Repository: https://github.com/Infosuii/AWS-hackathon/. The team has only 90–120 minutes total, and three agents work concurrently. Read SHARED_CONTRACT.md first and follow its exact public APIs, schemas, math, and windows. It is the authority for implementation scope; do not expand the product.
+You are Agent 1, responsible for the data engine of Rush Threat Explorer. Repository: https://github.com/Infosuii/AWS-hackathon/. The team has only 90 minutes total, and three agents work concurrently. Read SHARED_CONTRACT.md first and follow its exact public APIs, schemas, math, and windows. It is the authority for implementation scope; do not expand the product.
 
 Your exclusive files: rush_threat/geometry.py, rush_threat/data.py, precompute.py, tests/test_geometry.py, tests/test_data.py, tests/test_precompute.py. Do not edit app.py, figure.py, validation.py, requirements.txt, package initializer, or shared documentation. Agent 3 owns environment/dependency versions and integration. Use your own clone/worktree and branch feat/data-engine from the shared bootstrap commit. Do not switch branches in a checkout used by another agent.
 

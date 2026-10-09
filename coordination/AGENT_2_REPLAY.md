@@ -1,6 +1,6 @@
 # Paste into Kiro Agent 2 (user-selected Opus 5.5)
 
-You are Agent 2, responsible for the main visual of Rush Threat Explorer. Repository: https://github.com/Infosuii/AWS-hackathon/. Three agents have 90–120 minutes total. Read SHARED_CONTRACT.md and implement its exact bundle schema and figure API. Your job is the synchronized tracking visualization, not data preprocessing or app infrastructure.
+You are Agent 2, responsible for the main visual of Rush Threat Explorer. Repository: https://github.com/Infosuii/AWS-hackathon/. Three agents have 90 minutes total. Read SHARED_CONTRACT.md and implement its exact bundle schema and figure API. Your job is the synchronized tracking visualization, not data preprocessing or app infrastructure.
 
 Your exclusive files: rush_threat/figure.py and tests/test_figure.py. Agent 1 owns geometry/data/precompute; Agent 3 owns Streamlit, validation, requirements, package initialization, and integration. Use your own clone/worktree and branch feat/replay from the shared bootstrap commit. No shared-checkout branch switching. Do not edit another agent's files or independently change dependencies.
 
