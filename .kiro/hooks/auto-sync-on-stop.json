@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Auto-sync to GitHub (agent finished)",
+      "trigger": "Stop",
+      "description": "Commits all changes and pushes to origin after every Kiro agent run.",
+      "action": {
+        "type": "command",
+        "command": "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/auto-sync.ps1",
+        "timeout": 120
+      }
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Auto-sync to GitHub (file saved)",
+      "trigger": "PostFileSave",
+      "description": "Commits all changes and pushes to origin whenever a file is saved.",
+      "action": {
+        "type": "command",
+        "command": "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/auto-sync.ps1",
+        "timeout": 120
+      }
+    }
+  ]
+}
