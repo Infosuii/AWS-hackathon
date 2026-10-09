@@ -169,7 +169,7 @@ def build_figure(bundle: dict) -> go.Figure:
                               ("speed_cursor", 2, speed_range)):
         add_dynamic(key, go.Scatter(x=[], y=limits, mode="lines", showlegend=False,
                     name="Replay time", hoverinfo="skip",
-                    line=dict(color="#f5f8ff", width=2, dash="dot")), row, 2)
+                    line=dict(color="#6c7f98", width=2, dash="dot")), row, 2)
     fig.add_hline(y=5, row=1, col=2, line=dict(color="#ffd76a", dash="dash"),
                   annotation_text="5 yd alert radius", annotation_position="bottom right")
     fig.add_hline(y=0, row=2, col=2, line=dict(color="#627388", width=1))
