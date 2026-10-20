@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="800" viewBox="0 0 1440 800" role="img" aria-labelledby="title desc">
+  <title id="title">Rush Threat Explorer: from tracking data to an interactive explanation</title>
+  <desc id="desc">Local CSV files feed shared data and geometry functions. Batch preprocessing writes play summaries and exclusions. Streamlit reads those artifacts and loads game tracking on demand, producing synchronized Plotly replays and pressure validation.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 1 8 5 0 9" fill="none" stroke="#64748b" stroke-width="1.5"/></marker>
+    <style>
+      text {font-family:Segoe UI,Arial,sans-serif; fill:#16243b}
+      .eyebrow {font-size:14px; font-weight:700; letter-spacing:2px; fill:#94681a}
+      .heading {font-size:23px; font-weight:700}
+      .body {font-size:18px; fill:#526277}
+      .small {font-size:16px; fill:#526277}
+      .code {font-family:Consolas,monospace; font-size:17px; fill:#334155}
+      .line {fill:none; stroke:#64748b; stroke-width:2; marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1440" height="800" rx="24" fill="#f6f8fb"/>
+  <text x="56" y="56" class="eyebrow">RUSH THREAT EXPLORER / IMPLEMENTED ARCHITECTURE</text>
+  <text x="56" y="106" font-size="36" font-weight="700">From raw movement to a story you can inspect.</text>
+  <text x="56" y="140" class="body">Local files · shared Python analysis · batch preparation + interactive replay</text>
+
+  <rect x="48" y="180" width="366" height="552" rx="20" fill="#fff" stroke="#dce3ec"/>
+  <rect x="438" y="180" width="498" height="552" rx="20" fill="#fff" stroke="#dce3ec"/>
+  <rect x="960" y="180" width="432" height="552" rx="20" fill="#fff" stroke="#dce3ec"/>
+  <text x="76" y="220" class="eyebrow">01 / SOURCE DATA</text>
+  <text x="466" y="220" class="eyebrow">02 / PREPARE &amp; MEASURE</text>
+  <text x="988" y="220" class="eyebrow">03 / EXPLORE &amp; VALIDATE</text>
+
+  <rect x="76" y="252" width="310" height="178" rx="14" fill="#eff5fb" stroke="#d6e5f3"/>
+  <text x="100" y="290" class="heading">NFL tracking + context</text>
+  <text x="100" y="325" class="code">tracking_[gameId].csv</text>
+  <text x="100" y="357" class="body">games · plays · players</text>
+  <text x="100" y="392" class="small">Positions and orientation at 10 Hz</text>
+
+  <rect x="76" y="454" width="310" height="148" rx="14" fill="#eff5fb" stroke="#d6e5f3"/>
+  <text x="100" y="492" class="heading">PFF scouting</text>
+  <text x="100" y="527" class="code">pffScoutingData.csv</text>
+  <text x="100" y="564" class="body">Player roles · hit / hurry / sack</text>
+  <text x="100" y="659" class="small">Raw data stays on the host.</text>
+  <text x="100" y="686" class="small">Downloaded separately from the code.</text>
+
+  <path d="M386 340 H420 V323 H466" class="line"/>
+  <path d="M386 526 H420 V348 H466" class="line"/>
+  <rect x="466" y="252" width="442" height="164" rx="14" fill="#f1f7f4" stroke="#d7e8de"/>
+  <text x="490" y="290" class="heading">Shared analysis core</text>
+  <text x="490" y="325" class="code">data.py + geometry.py</text>
+  <text x="490" y="359" class="body">Join context · bound plays · keep unknowns</text>
+  <text x="490" y="389" class="body">Distance · sector · smoothed closing speed</text>
+
+  <path d="M687 416 V448" class="line"/>
+  <rect x="466" y="450" width="442" height="102" rx="14" fill="#f1f7f4" stroke="#d7e8de"/>
+  <text x="490" y="488" class="heading">Batch preprocessing</text>
+  <text x="490" y="524" class="code">precompute.py · one game at a time</text>
+  <path d="M687 552 V584" class="line"/>
+  <rect x="466" y="586" width="442" height="118" rx="14" fill="#fff8e9" stroke="#eddbb2"/>
+  <text x="490" y="623" class="heading">Local analysis artifacts</text>
+  <text x="490" y="657" class="code">play_summary.parquet / .csv</text>
+  <text x="490" y="685" class="code">exclusions.csv</text>
+
+  <path d="M908 324 H986" class="line"/>
+  <rect x="988" y="252" width="376" height="164" rx="14" fill="#f3f0fb" stroke="#e1d9f1"/>
+  <text x="1012" y="290" class="heading">Streamlit app</text>
+  <text x="1012" y="325" class="code">app.py</text>
+  <text x="1012" y="359" class="body">Choose game · play · forward sector</text>
+  <text x="1012" y="389" class="small">Cached context + on-demand game tracking</text>
+  <path d="M908 644 H944 V385 H986" class="line"/>
+  <path d="M1176 416 V448" class="line"/>
+  <rect x="988" y="450" width="376" height="114" rx="14" fill="#f3f0fb" stroke="#e1d9f1"/>
+  <text x="1012" y="488" class="heading">Synchronized Plotly replay</text>
+  <text x="1012" y="522" class="body">Field + distance + closing speed</text>
+  <text x="1012" y="548" class="small">A shared players / threats / metadata bundle</text>
+  <path d="M1364 334 H1378 V646 H1366" class="line"/>
+  <rect x="988" y="588" width="376" height="116" rx="14" fill="#f3f0fb" stroke="#e1d9f1"/>
+  <text x="1012" y="626" class="heading">Pressure comparison</text>
+  <text x="1012" y="660" class="body">Matched AUC cohorts · score distributions</text>
+  <text x="1012" y="687" class="small">Saved summaries → validation.py</text>
+
+  <text x="56" y="770" class="small">Single-host Python application. No cloud services required. All scores and smoothing are retrospective.</text>
+</svg>

@@ -82,7 +82,7 @@ def _range(values, default, padding):
             max(default[1], float(values.max()) + padding)]
 
 
-def build_figure(bundle: dict) -> go.Figure:
+def build_figure(bundle: dict, *, dark: bool = True) -> go.Figure:
     """Build field + distance/speed panels with explicit animation trace maps.
 
     Replay frames are the sorted union of observed players/threats frameIds.
@@ -91,12 +91,16 @@ def build_figure(bundle: dict) -> go.Figure:
     ``layout.meta.dynamic_traces`` exposes the stable trace map for inspection.
     """
     players, threats, metadata = (bundle[k] for k in ("players", "threats", "metadata"))
+    text_color = "#e8edf5" if dark else "#1b2533"
+    muted_color = "#9aa6b8" if dark else "#5b6778"
+    panel_color = "rgba(22,29,41,0.92)" if dark else "#f5f7fa"
+    border_color = "#3a4a60" if dark else "#d9dee6"
     fig = make_subplots(rows=2, cols=2, specs=[[{"rowspan": 2}, {}], [None, {}]],
                         column_widths=[0.62, 0.38], horizontal_spacing=0.09,
                         vertical_spacing=0.17,
                         subplot_titles=("Field · all tracked players (native yards)",
                                         "Rusher distance to QB (yd)",
-                                        "Rusher closing speed toward QB (yd/s, smoothed)"))
+                                        "Closing speed toward QB (yd/s)"))
     dynamic = {}
 
     def add_dynamic(key, trace, row=1, col=1):
@@ -184,8 +188,8 @@ def build_figure(bundle: dict) -> go.Figure:
         event = str(metadata.get('terminal_event') or 'event').replace("_", " ")
         fig.add_annotation(x=terminal_time, y=0.98, xref="x2", yref="y2 domain",
                            text=f"Terminal: {escape(event)}", showarrow=False,
-                           xanchor="right", yanchor="top", font=dict(size=11, color="#d5dde8"),
-                           bgcolor="rgba(14,17,23,0.75)", borderpad=3)
+                           xanchor="right", yanchor="top", font=dict(size=11, color=muted_color),
+                           bgcolor=panel_color, borderpad=3)
 
     alerts = [select_alert(group) for _, group in threats.groupby("frameId", sort=True)]
     alerts = [alert for alert in alerts if alert is not None]
@@ -257,7 +261,7 @@ def build_figure(bundle: dict) -> go.Figure:
         alert = select_alert(current_threats)
         if alert is None:
             updates["alert"] = go.Scatter(x=[], y=[])
-            alert_text = ("<span style='color:#9aa6b8'>Current-frame alert: No qualifying alert"
+            alert_text = (f"<span style='color:{muted_color}'>Current-frame alert: No qualifying alert"
                           " (no rusher within 5 yd who is closing on the QB)</span>")
         else:
             coordinates = [alert[k] for k in ("qb_x", "qb_y", "x", "y")]
@@ -269,11 +273,12 @@ def build_figure(bundle: dict) -> go.Figure:
             if (wedge_x and _finite(alert.qb_o) and _finite(alert.bearing_deg)
                     and not pd.isna(alert.outside_sector)):
                 status = "outside" if bool(alert.outside_sector) else "inside"
-            alert_text = (f"Current-frame alert: <span style='color:{colors[alert.nflId]}'><b>"
+            label_color = colors[alert.nflId] if dark else text_color
+            alert_text = (f"Current-frame alert: <span style='color:{label_color}'><b>"
                           f"#{_label(alert.jerseyNumber)} {escape(str(alert.displayName))}</b></span>"
-                          f" · {alert.distance:.1f} yd from QB · closing at {alert.closing_speed:.1f} yd/s"
+                          f" · {alert.distance:.1f} yd from QB<br>Closing at {alert.closing_speed:.1f} yd/s"
                           f" · {status.capitalize()} assumed forward sector")
-        orientation_text = ("<span style='color:#9aa6b8'>"
+        orientation_text = (f"<span style='color:{muted_color}'>"
                             + (f"Wedge: assumed forward sector ({sector_deg:g}°) from QB orientation"
                                " · orientation is not gaze" if wedge_x else
                                "Assumed forward sector unknown · missing QB orientation/position")
@@ -284,9 +289,9 @@ def build_figure(bundle: dict) -> go.Figure:
                                       y=distance_range if key == "distance_cursor" else speed_range)
         annotations = base_annotations + [go.layout.Annotation(
             x=0, y=-0.12, xref="paper", yref="paper", xanchor="left", yanchor="top",
-            showarrow=False, align="left", font=dict(size=13, color="#e8edf5"),
-            bgcolor="rgba(22,29,41,0.92)", bordercolor="#3a4a60", borderwidth=1, borderpad=8,
-            text=(f"<b>{now:.1f} s after snap</b>  <span style='color:#9aa6b8'>· frame "
+            showarrow=False, align="left", font=dict(size=13, color=text_color),
+            bgcolor=panel_color, bordercolor=border_color, borderwidth=1, borderpad=8,
+            text=(f"<b>{now:.1f} s after snap</b>  <span style='color:{muted_color}'>· frame "
                   f"{int(frame_id)}</span><br>{alert_text}<br>{orientation_text}"))]
         frames.append(go.Frame(name=str(int(frame_id)),
                       data=[updates[key] for key in dynamic], traces=list(dynamic.values()),
@@ -302,9 +307,10 @@ def build_figure(bundle: dict) -> go.Figure:
     immediate = dict(mode="immediate", frame=dict(duration=0, redraw=True),
                      transition=dict(duration=0))
     fig.update_layout(
-        template="plotly_dark", height=830, autosize=True,
+        template="plotly_dark" if dark else "plotly_white", height=830, autosize=True,
+        font=dict(color=text_color),
         title=dict(text=escape(str(metadata.get('playDescription') or '')),
-                   font=dict(size=14, color="#c9d3e0"), x=0.01, y=0.985),
+                   font=dict(size=14, color=text_color), x=0.01, y=0.985),
         margin=dict(l=60, r=35, t=70, b=300),
         legend=dict(orientation="h", x=0, y=-0.52, xanchor="left", yanchor="top",
                     font=dict(size=12)),
@@ -317,7 +323,7 @@ def build_figure(bundle: dict) -> go.Figure:
                       font=dict(size=10, color="rgba(0,0,0,0)"), ticklen=4,
                       tickcolor="#5c6b80", bgcolor="#3a4a60", activebgcolor="#ffd76a",
                       currentvalue=dict(prefix="Time from snap: ", xanchor="left",
-                                        font=dict(size=15, color="#e8edf5")),
+                                        font=dict(size=15, color=text_color)),
                       steps=[dict(label=f"{frame_times[fid]:.1f} s (frame {int(fid)})",
                                   method="animate", args=[[str(int(fid))], immediate])
                              for fid in frame_ids])],

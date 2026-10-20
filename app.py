@@ -179,7 +179,7 @@ def render_replay(data_dir: Path | None, game_id: int, play_id: int, sector_deg:
     if len(threats) and threats["outside_sector"].isna().any():
         st.caption("Orientation is missing for some frames: the wedge is hidden and inside/outside is unknown there.")
     try:
-        st.plotly_chart(build_figure(bundle), width="stretch")
+        st.plotly_chart(build_figure(bundle, dark=st.session_state.get("dark_mode", True)), width="stretch")
     except Exception as exc:
         st.error(f"Figure could not be built: {exc}")
     st.caption(f"Wedge = assumed forward sector ({sector_deg:.0f}°) from QB player orientation; orientation is "
